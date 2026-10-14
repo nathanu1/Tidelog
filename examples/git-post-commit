@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Git hook: every commit becomes a Work entry in LogDataTrack.
+# Install:  cp examples/git-post-commit /path/to/repo/.git/hooks/post-commit && chmod +x /path/to/repo/.git/hooks/post-commit
+# Tune:     LOGTRACK_URL, LOGTRACK_TOKEN, LOGTRACK_COMMIT_MINUTES (default 20)
+URL="${LOGTRACK_URL:-http://localhost:3000}"
+MIN="${LOGTRACK_COMMIT_MINUTES:-20}"
+MSG="$(git log -1 --pretty=%s | head -c 160)"
+REPO="$(basename "$(git rev-parse --show-toplevel)")"
+AUTH=()
+[[ -n "${LOGTRACK_TOKEN:-}" ]] && AUTH=(-H "Authorization: Bearer $LOGTRACK_TOKEN")
+PAYLOAD=$(printf '{"title":"commit: %s","category":"work","duration_min":%s,"intensity":4,"tags":["git","%s"],"source":"git"}' \
+  "$(printf '%s' "$MSG" | sed 's/\\/\\\\/g; s/"/\\"/g')" "$MIN" "$REPO")
+curl -s -m 3 "${AUTH[@]}" -X POST "$URL/api/activities" -H 'content-type: application/json' -d "$PAYLOAD" >/dev/null 2>&1 || true

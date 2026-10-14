@@ -1,0 +1,26 @@
+{
+  "name": "logdatatrack",
+  "version": "0.1.0",
+  "description": "Log your activity, watch it become living generative art. Node + Postgres.",
+  "type": "module",
+  "main": "server/index.js",
+  "bin": {
+    "logtrack": "bin/logtrack.js"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js",
+    "db:reset": "node scripts/migrate.js --reset && node scripts/seed.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.13.1"
+  }
+}

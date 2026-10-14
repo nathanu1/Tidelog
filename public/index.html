@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LogDataTrack</title>
+  <meta name="description" content="Log what you do; watch it become living generative art." />
+  <meta name="theme-color" content="#14110f" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+</head>
+<body>
+  <canvas id="art" aria-label="Generative artwork rendered from your activity log"></canvas>
+
+  <div class="ui" id="ui">
+    <header class="topbar">
+      <div class="brand"><span class="pulse" id="pulse"></span><span>LogDataTrack</span><span class="live" id="live" title="Live connection">live</span></div>
+      <nav class="ranges" aria-label="Time range">
+        <button data-range="24h" class="active">24h</button>
+        <button data-range="7d">7d</button>
+        <button data-range="30d">30d</button>
+      </nav>
+      <div class="actions">
+        <div class="timer" id="timer" hidden>
+          <span class="dot"></span>
+          <span class="timer-title" id="timer-title"></span>
+          <span class="timer-elapsed" id="timer-elapsed">00:00</span>
+          <button class="btn small" id="btn-timer-stop">Stop</button>
+        </div>
+        <button class="btn" id="btn-timer" title="Start a timer (T)">▶ Timer</button>
+        <button class="btn primary" id="btn-log" title="Log activity (L)">+ Log <kbd>L</kbd></button>
+        <button class="btn ghost" id="btn-gallery" title="Gallery (G)">Gallery</button>
+        <button class="btn ghost" id="btn-save" title="Save this piece (S)">Save art</button>
+        <button class="btn icon" id="btn-focus" title="Focus mode (F)">⛶</button>
+      </div>
+    </header>
+
+    <section class="metrics" id="metrics" aria-live="polite"></section>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="corner">
+      <div class="empty" id="empty" hidden>Nothing logged in this window yet. Press <kbd>L</kbd> to log your first activity.</div>
+      <div class="hint" id="hint">
+        <span><kbd>L</kbd> log</span><span><kbd>T</kbd> timer</span><span><kbd>S</kbd> save</span><span><kbd>G</kbd> gallery</span><span><kbd>R</kbd> reseed</span><span><kbd>F</kbd> focus</span>
+        <button class="linkish" id="btn-about">how it works</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timer start popover -->
+  <div class="popover" id="timer-pop" hidden>
+    <label for="timer-input">What are you starting?</label>
+    <input id="timer-input" type="text" placeholder="Writing the spec @work #focus !4" autocomplete="off" />
+    <div class="row">
+      <span class="parse" id="timer-parse"></span>
+      <button class="btn primary small" id="btn-timer-start">Start</button>
+    </div>
+  </div>
+
+  <!-- Log drawer -->
+  <aside class="drawer" id="drawer" aria-label="Log activity">
+    <div class="drawer-head">
+      <h2>Log activity</h2>
+      <button class="btn icon" data-close aria-label="Close">×</button>
+    </div>
+    <form id="log-form" autocomplete="off">
+      <label class="field">
+        <span>What did you do?</span>
+        <input id="quick" type="text" placeholder="45m deep work on the renderer @work #focus !4 ~5" required />
+        <small class="muted">Shorthand: <code>45m</code> / <code>1h30m</code> duration · <code>@work</code> category · <code>#tag</code> · <code>!4</code> intensity · <code>~5</code> mood</small>
+      </label>
+      <div class="parse-preview" id="parse-preview"></div>
+
+      <div class="field">
+        <span>Category</span>
+        <div class="chips" id="cat-chips"></div>
+      </div>
+
+      <div class="grid2">
+        <label class="field">
+          <span>Duration <em id="dur-label">30 min</em></span>
+          <input id="duration" type="range" min="0" max="240" step="5" value="30" />
+          <div class="presets" id="dur-presets">
+            <button type="button" data-min="5">5</button><button type="button" data-min="15">15</button><button type="button" data-min="25">25</button><button type="button" data-min="45">45</button><button type="button" data-min="60">60</button><button type="button" data-min="90">90</button><button type="button" data-min="120">120</button>
+          </div>
+        </label>
+        <div class="field">
+          <span>When</span>
+          <div class="seg" id="when-seg">
+            <button type="button" data-when="finished" class="active">Just finished</button>
+            <button type="button" data-when="custom">Custom</button>
+          </div>
+          <input id="started-at" type="datetime-local" hidden />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <span>Intensity</span>
+          <div class="seg scale" id="intensity-seg"><button type="button" data-v="1">1</button><button type="button" data-v="2">2</button><button type="button" data-v="3" class="active">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div>
+        </div>
+        <div class="field">
+          <span>Mood</span>
+          <div class="seg scale" id="mood-seg"><button type="button" data-v="1">☹</button><button type="button" data-v="2">◡</button><button type="button" data-v="3">–</button><button type="button" data-v="4">◠</button><button type="button" data-v="5">☺</button></div>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>Tags</span>
+        <input id="tags" type="text" placeholder="focus, art, outdoors" />
+      </label>
+      <label class="field">
+        <span>Note</span>
+        <textarea id="note" rows="2" placeholder="Optional"></textarea>
+      </label>
+      <div class="row end">
+        <button type="submit" class="btn primary">Log it <kbd>⏎</kbd></button>
+      </div>
+    </form>
+
+    <div class="drawer-section">
+      <div class="row between"><h3>Recent</h3><a class="linkish" href="/api/export.csv">export csv</a></div>
+      <ul class="recent" id="recent"></ul>
+    </div>
+  </aside>
+
+  <!-- Gallery drawer -->
+  <aside class="drawer wide" id="gallery" aria-label="Gallery">
+    <div class="drawer-head">
+      <h2>Gallery</h2>
+      <button class="btn icon" data-close aria-label="Close">×</button>
+    </div>
+    <p class="muted small">Every saved piece stores its seed and envelopes in Postgres, so it can be re-rendered live. Click one to open it.</p>
+    <div class="gallery-grid" id="gallery-grid"></div>
+  </aside>
+
+  <!-- Save dialog -->
+  <div class="modal" id="save-modal" hidden>
+    <div class="modal-card">
+      <h3>Save this piece</h3>
+      <p class="muted small">Stores the current seed, envelopes and a thumbnail.</p>
+      <input id="save-title" type="text" placeholder="Title (optional)" />
+      <div class="row end">
+        <button class="btn ghost" data-close>Cancel</button>
+        <button class="btn primary" id="btn-save-confirm">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Artwork viewer -->
+  <div class="modal viewer" id="viewer" hidden>
+    <div class="viewer-card">
+      <canvas id="viewer-canvas"></canvas>
+      <div class="viewer-bar">
+        <div><strong id="viewer-title"></strong><span class="muted small" id="viewer-meta"></span></div>
+        <div class="row">
+          <button class="btn small" id="viewer-download">Download PNG</button>
+          <button class="btn small danger" id="viewer-delete">Delete</button>
+          <button class="btn small ghost" data-close>Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="modal" id="about" hidden>
+    <div class="modal-card about">
+      <h3>How the art is made</h3>
+      <ul>
+        <li><b>Each category is a ribbon</b> in its own colour, mirrored around the centre line.</li>
+        <li><b>Height along the timeline</b> is how much of that time slice you spent on it, Gaussian-smoothed.</li>
+        <li><b>Ripple</b> comes from intensity: harder sessions shimmer faster.</li>
+        <li><b>Particles</b> are your energy over the last three hours.</li>
+        <li><b>Tempo</b> follows how many entries you logged today.</li>
+        <li><b>Warmth</b> of the background follows your average mood.</li>
+        <li><b>The seed</b> fixes the noise field, so a saved piece can be re-rendered exactly. <kbd>R</kbd> rolls a new one.</li>
+      </ul>
+      <p class="muted small">Log from anywhere: <code>curl -X POST /api/activities/quick -d '{"text":"45m deep work @work"}'</code></p>
+      <div class="row end"><button class="btn primary" data-close>Close</button></div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
